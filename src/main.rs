@@ -1,13 +1,16 @@
 mod repository;
 mod task;
+mod task_repository;
 mod technical_debt;
 
-use repository::{insert_tech_debt, migrate};
+use repository::migrate;
 use rusqlite::Result;
+use task::start_task;
 
 fn main() -> Result<()> {
     let conn = migrate()?;
-    insert_tech_debt(conn, String::from("stuff"))?;
+
+    start_task(conn, String::from("Hello"), String::from("Use me"))?;
 
     Ok(())
 }

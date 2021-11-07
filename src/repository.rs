@@ -1,4 +1,3 @@
-use crate::domain::TechnicalDebt;
 use rusqlite::{Connection, Result};
 
 pub fn migrate() -> Result<Connection> {
@@ -16,7 +15,7 @@ pub fn migrate() -> Result<Connection> {
         "create table if not exists task (
             id INTEGENER PRIMARY KEY,
             description TEXT NOT NULL,
-            started INTEGER NOT NULL,
+            started INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')),
             finished INTEGER,
             tech_debt_id INTEGER NOT NULL,
             FOREIGN KEY(tech_debt_id) REFERENCES tech_debt(id)
@@ -27,24 +26,42 @@ pub fn migrate() -> Result<Connection> {
     Ok(conn)
 }
 
-pub fn tech_debt_exists(conn: Connection, name: String) -> Option<TechnicalDebt> {
-    let debt: Result<TechnicalDebt> =
-        conn.query_row("SELECT * FROM tech_debt where name = ?)", [name], |row| {
-            Ok(TechnicalDebt {
-                id: row.get(0)?,
-                name: row.get(1)?,
-            })
-        });
-
-    match debt {
-        Ok(d) => Some(d),
-        Err(_) => None,
-    }
+#[derive(Debug)]
+pub struct TechDebt {
+    pub id: i64,
+    pub name: String,
 }
 
-pub fn insert_tech_debt(conn: Connection, name: String) -> Result<()> {
-    conn.prepare("INSERT INTO tech_debt (name) VALUES (?1)")?
-        .execute([name])?;
+pub struct TechnicalDebtRepository<'a> {
+    conn: &'a Connection,
+}
 
-    Ok(())
+impl TechnicalDebtRepository<'_> {
+    pub fn new(conn: &Connection) -> TechnicalDebtRepository {
+        TechnicalDebtRepository { conn }
+    }
+
+    pub fn tech_debt_by_name(&self, name: &String) -> Option<TechDebt> {
+        let debt: Result<TechDebt> =
+            self.conn
+                .query_row("SELECT * FROM tech_debt where name = ?", [name], |row| {
+                    Ok(TechDebt {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                    })
+                });
+
+        match debt {
+            Ok(d) => Some(d),
+            Err(_) => None,
+        }
+    }
+
+    pub fn insert_tech_debt(&self, name: &String) -> Result<()> {
+        self.conn
+            .prepare("INSERT INTO tech_debt (name) VALUES (?1)")?
+            .execute([name])?;
+
+        Ok(())
+    }
 }
