@@ -5,7 +5,7 @@ pub fn migrate() -> Result<Connection> {
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tech_debt (
-                  id              INTEGER PRIMARY KEY,
+                  id              INTEGER PRIMARY KEY AUTOINCREMENT,
                   name            TEXT NOT NULL
                   )",
         [],
@@ -13,7 +13,7 @@ pub fn migrate() -> Result<Connection> {
 
     conn.execute(
         "create table if not exists task (
-            id INTEGENER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             description TEXT NOT NULL,
             started INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')),
             finished INTEGER,

@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use rusqlite::{Connection, Result};
 
@@ -7,32 +7,37 @@ use crate::{
     task_repository::TaskRepository,
 };
 
-struct FinishedTask {
-    id: i64,
-    description: String,
-    amount: Duration,
+pub enum Task {
+    Started(StartedTask),
+    Finished(FinishedTask),
 }
 
-struct PausedTask {
-    id: i64,
-    tech_debt: String,
-    description: String,
-    started_at: Instant,
-    paused_at: Instant,
+pub struct FinishedTask {
+    pub description: String,
+    pub amount: Duration,
 }
 
 pub struct StartedTask {
-    id: i64,
     pub tech_debt: String,
     pub description: String,
-    pub started_at: Instant,
+    pub started_at: Duration,
 }
 
-pub fn start_task(
-    conn: Connection,
-    tech_debt_name: String,
-    description: String,
-) -> Result<StartedTask> {
+fn from_db_task(t: crate::task_repository::TaskEntity) -> Task {
+    match t.finished {
+        Some(finished) => Task::Finished(FinishedTask {
+            description: t.description,
+            amount: Duration::from_millis(finished),
+        }),
+        None => Task::Started(StartedTask {
+            tech_debt: t.tech_debt.name,
+            description: t.description,
+            started_at: t.started,
+        }),
+    }
+}
+
+pub fn start_task(conn: Connection, tech_debt_name: String, description: String) -> Result<Task> {
     let tech_debt_repository = TechnicalDebtRepository::new(&conn);
     let task_repository = TaskRepository::new(&conn);
 
@@ -45,16 +50,8 @@ pub fn start_task(
             .unwrap(),
     };
 
-    let task = task_repository
+    task_repository
         .create_task(&description, debt.id)
-        .and_then(|task_id| task_repository.task_by_id(task_id))?;
-
-    println!("{}", task.description);
-
-    Ok(StartedTask {
-        id: 0,
-        tech_debt: String::from("asdasd"),
-        description: String::from("asdasd"),
-        started_at: Instant::now(),
-    })
+        .and_then(|task_id| task_repository.task_by_id(task_id))
+        .map(from_db_task)
 }

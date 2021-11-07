@@ -5,11 +5,11 @@ use rusqlite::{params, Connection, Result};
 use crate::repository::TechDebt;
 
 #[derive(Debug)]
-pub struct Task {
+pub struct TaskEntity {
     pub id: i64,
     pub description: String,
     pub started: Duration,
-    pub finished: Duration,
+    pub finished: Option<u64>,
     pub tech_debt: TechDebt,
 }
 
@@ -23,27 +23,26 @@ impl TaskRepository<'_> {
     }
 
     pub fn create_task(&self, description: &String, tech_debt_id: i64) -> Result<i64> {
-        self.conn.execute(
-            "INSERT INTO task (description, tech_debt_id) VALUES (?1, ?2)",
+        self.conn.query_row(
+            "INSERT INTO task (description, tech_debt_id) VALUES (?1, ?2) returning id",
             params![description, tech_debt_id],
-        )?;
-
-        Ok(self.conn.last_insert_rowid())
+            |row| row.get(0),
+        )
     }
 
-    pub fn task_by_id(&self, task_id: i64) -> Result<Task> {
+    pub fn task_by_id(&self, task_id: i64) -> Result<TaskEntity> {
         self.conn.query_row(
             "SELECT * from task INNER JOIN tech_debt ON tech_debt.id = task.tech_debt_id where task.id = ?1",
             [task_id],
             |row| {
-                Ok(Task {
+                Ok(TaskEntity {
                     id: row.get(0)?,
                     description: row.get(1)?,
                     started: Duration::from_millis(row.get(2)?),
-                    finished: Duration::from_millis(row.get(3)?),
+                    finished: row.get(3)?,
                     tech_debt: TechDebt {
-                        id: row.get(4)?,
-                        name: row.get(5)?,
+                        id: row.get(5)?,
+                        name: row.get(6)?,
                     },
                 })
             },
