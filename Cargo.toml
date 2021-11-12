@@ -7,3 +7,11 @@ edition = "2018"
 
 [dependencies]
 rusqlite = "0.26.1"
+
+[[bin]]
+name = "wmt"
+path = "src/main.rs"
+
+[lib]
+name = "wmt"
+path = "src/lib.rs"

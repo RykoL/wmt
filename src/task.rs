@@ -7,14 +7,9 @@ use crate::{
     task_repository::TaskRepository,
 };
 
-pub enum Task {
-    Started(StartedTask),
-    Finished(FinishedTask),
-}
-
 pub struct FinishedTask {
     pub description: String,
-    pub amount: Duration,
+    pub time_spent: Duration,
 }
 
 pub struct StartedTask {
@@ -23,21 +18,11 @@ pub struct StartedTask {
     pub started_at: Duration,
 }
 
-fn from_db_task(t: crate::task_repository::TaskEntity) -> Task {
-    match t.finished {
-        Some(finished) => Task::Finished(FinishedTask {
-            description: t.description,
-            amount: Duration::from_millis(finished),
-        }),
-        None => Task::Started(StartedTask {
-            tech_debt: t.tech_debt.name,
-            description: t.description,
-            started_at: t.started,
-        }),
-    }
-}
-
-pub fn start_task(conn: Connection, tech_debt_name: String, description: String) -> Result<Task> {
+pub fn start_task(
+    conn: Connection,
+    tech_debt_name: String,
+    description: String,
+) -> Result<StartedTask> {
     let tech_debt_repository = TechnicalDebtRepository::new(&conn);
     let task_repository = TaskRepository::new(&conn);
 
@@ -53,5 +38,20 @@ pub fn start_task(conn: Connection, tech_debt_name: String, description: String)
     task_repository
         .create_task(&description, debt.id)
         .and_then(|task_id| task_repository.task_by_id(task_id))
-        .map(from_db_task)
+        .map(|t| StartedTask {
+            tech_debt: t.tech_debt.name,
+            description: t.description,
+            started_at: t.started,
+        })
+}
+
+pub fn finish_current_task(conn: Connection) -> Result<FinishedTask> {
+    let task_repository = TaskRepository::new(&conn);
+
+    task_repository
+        .next_unfinished_task()
+        .map(|_| FinishedTask {
+            description: String::from("asdasd"),
+            time_spent: Duration::from_secs(300),
+        })
 }

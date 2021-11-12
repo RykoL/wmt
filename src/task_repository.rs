@@ -1,10 +1,9 @@
 use std::time::Duration;
 
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, OptionalExtension, Result};
 
 use crate::repository::TechDebt;
 
-#[derive(Debug)]
 pub struct TaskEntity {
     pub id: i64,
     pub description: String,
@@ -48,4 +47,25 @@ impl TaskRepository<'_> {
             },
         )
     }
+
+    pub fn next_unfinished_task(&self) -> Result<Option<TaskEntity>> {
+        self.conn.query_row(
+            "select * from task INNER JOIN tech_debt on tech_debt.id = task.tech_debt_id where finished = NULL sort by started ",
+            [],
+            |row| {
+                Ok(TaskEntity {
+                    id: row.get(0)?,
+                    description: row.get(1)?,
+                    started: Duration::from_millis(row.get(2)?),
+                    finished: row.get(3)?,
+                    tech_debt: TechDebt {
+                        id: row.get(5)?,
+                        name: row.get(6)?,
+                    },
+                })
+            },
+        ).optional()
+    }
+
+    pub fn finish_task(&self, task_id: i64, finished: Duration) {}
 }

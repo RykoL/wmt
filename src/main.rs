@@ -1,16 +1,13 @@
-mod repository;
-mod task;
-mod task_repository;
-mod technical_debt;
-
-use repository::migrate;
-use rusqlite::Result;
-use task::start_task;
+extern crate wmt;
+use rusqlite::{Connection, Result};
 
 fn main() -> Result<()> {
-    let conn = migrate()?;
+    let mut conn = Connection::open_in_memory()?;
+    conn = wmt::migrate::migrate(conn)?;
 
-    start_task(conn, String::from("Hello"), String::from("Use me"))?;
+    let task = wmt::task::start_task(conn, String::from("Hello"), String::from("Use me"))?;
+
+    println!("Task successfully started: {}", task.description);
 
     Ok(())
 }
