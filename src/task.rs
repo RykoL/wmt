@@ -19,12 +19,12 @@ pub struct StartedTask {
 }
 
 pub fn start_task(
-    conn: Connection,
+    conn: &Connection,
     tech_debt_name: String,
     description: String,
 ) -> Result<StartedTask> {
-    let tech_debt_repository = TechnicalDebtRepository::new(&conn);
-    let task_repository = TaskRepository::new(&conn);
+    let tech_debt_repository = TechnicalDebtRepository::new(conn);
+    let task_repository = TaskRepository::new(conn);
 
     let debt: TechDebt = match tech_debt_repository.tech_debt_by_name(&tech_debt_name) {
         Some(d) => d,
@@ -45,13 +45,16 @@ pub fn start_task(
         })
 }
 
-pub fn finish_current_task(conn: Connection) -> Result<FinishedTask> {
-    let task_repository = TaskRepository::new(&conn);
+pub fn finish_current_task(conn: &Connection) -> Result<FinishedTask> {
+    let task_repository = TaskRepository::new(conn);
+
+    let task = task_repository.next_unfinished_task()?.unwrap();
 
     task_repository
-        .next_unfinished_task()
-        .map(|_| FinishedTask {
-            description: String::from("asdasd"),
-            time_spent: Duration::from_secs(300),
+        .finish_task(task.id)
+        .and_then(|_| task_repository.task_by_id(task.id))
+        .map(|t| FinishedTask {
+            description: t.description,
+            time_spent: Duration::from_millis(t.finished.unwrap()) - t.started,
         })
 }

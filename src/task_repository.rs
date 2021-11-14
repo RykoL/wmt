@@ -50,7 +50,7 @@ impl TaskRepository<'_> {
 
     pub fn next_unfinished_task(&self) -> Result<Option<TaskEntity>> {
         self.conn.query_row(
-            "select * from task INNER JOIN tech_debt on tech_debt.id = task.tech_debt_id where finished = NULL sort by started ",
+            "select * from task INNER JOIN tech_debt on tech_debt.id = task.tech_debt_id where finished IS NULL order by started asc",
             [],
             |row| {
                 Ok(TaskEntity {
@@ -67,5 +67,12 @@ impl TaskRepository<'_> {
         ).optional()
     }
 
-    pub fn finish_task(&self, task_id: i64, finished: Duration) {}
+    pub fn finish_task(&self, task_id: i64) -> Result<()> {
+        self.conn.execute(
+            "UPDATE task SET finished = (strftime('%s','now')) where id = ?1",
+            [task_id],
+        )?;
+
+        Ok(())
+    }
 }
