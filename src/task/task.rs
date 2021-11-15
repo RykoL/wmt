@@ -1,22 +1,10 @@
+use crate::task::repository::TaskRepository;
+use crate::task::types::{FinishedTask, StartedTask};
 use std::time::Duration;
 
 use rusqlite::{Connection, Result};
 
-use crate::{
-    repository::{TechDebt, TechnicalDebtRepository},
-    task_repository::TaskRepository,
-};
-
-pub struct FinishedTask {
-    pub description: String,
-    pub time_spent: Duration,
-}
-
-pub struct StartedTask {
-    pub tech_debt: String,
-    pub description: String,
-    pub started_at: Duration,
-}
+use crate::repository::{TechDebt, TechnicalDebtRepository};
 
 pub fn start_task(
     conn: &Connection,
