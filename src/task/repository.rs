@@ -22,11 +22,12 @@ impl TaskRepository<'_> {
     }
 
     pub fn create_task(&self, description: &String, tech_debt_id: i64) -> Result<i64> {
-        self.conn.query_row(
-            "INSERT INTO task (description, tech_debt_id) VALUES (?1, ?2) returning id",
-            params![description, tech_debt_id],
-            |row| row.get(0),
-        )
+        self.conn
+            .execute(
+                "INSERT INTO task (description, tech_debt_id) VALUES (?1, ?2)",
+                params![description, tech_debt_id],
+            )
+            .map(|_| self.conn.last_insert_rowid())
     }
 
     pub fn task_by_id(&self, task_id: i64) -> Result<TaskEntity> {
