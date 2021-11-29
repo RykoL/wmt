@@ -7,6 +7,19 @@ use rusqlite::Connection;
 use crate::errors::{Error, Result};
 use crate::repository::{TechDebt, TechnicalDebtRepository};
 
+pub fn next_open_task(conn: &Connection) -> Option<StartedTask> {
+    let task_repository = TaskRepository::new(conn);
+
+    match task_repository.next_unfinished_task() {
+        Ok(task) => task.map(|t| StartedTask {
+            tech_debt: t.tech_debt.name,
+            description: t.description,
+            started_at: t.started,
+        }),
+        Err(_) => None,
+    }
+}
+
 pub fn start_task(
     conn: &Connection,
     tech_debt_name: String,
@@ -23,6 +36,11 @@ pub fn start_task(
             .and_then(|_| tech_debt_repository.tech_debt_by_name(&tech_debt_name))
             .unwrap(),
     };
+
+    match next_open_task(conn) {
+        Some(t) => Err(Error::AlreadyOpenedTask(t)),
+        None => Ok(()),
+    }?;
 
     task_repository
         .create_task(&description, debt.id)

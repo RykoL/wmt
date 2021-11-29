@@ -1,13 +1,14 @@
 extern crate wmt;
 use clap::{App, Arg, ArgMatches};
 use rusqlite::Connection;
+use wmt::errors::display_error;
 use wmt::errors::{Error, Result};
 
 fn open_db() -> Result<Connection> {
     Connection::open("wmt.db3").map_err(|_| Error::DBOpenError)
 }
 
-fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), wmt::errors::Error> {
     let matches = App::new("wmt")
         .version("0.0.1")
         .author("Rico Lang")
@@ -20,8 +21,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         ("start", Some(sub_match)) => handle_start_task(sub_match),
         ("stop", Some(sub_match)) => Ok(()),
         (&_, _) => Ok(()),
-    };
-
+    }?;
     Ok(())
 }
 
@@ -36,7 +36,7 @@ fn handle_start_task(args: &ArgMatches) -> Result<()> {
         })
         .map(|task| {
             println!(
-                "Created task '{}' on project '{}'.",
+                "Started task '{}' on project '{}'.",
                 task.description, task.tech_debt
             )
         })?;

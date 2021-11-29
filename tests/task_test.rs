@@ -1,6 +1,6 @@
 extern crate wmt;
 
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 use wmt::errors::{Error, Result};
 
 #[test]
@@ -43,5 +43,31 @@ fn test_finish_current_task_should_stop_a_started_task() -> Result<()> {
         (finished_time - started_time) as u128
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_start_task_returns_error_if_there_is_an_already_opened_task() -> Result<()> {
+    let conn = Connection::open_in_memory().and_then(wmt::migrate::migrate)?;
+
+    conn.execute(
+        "INSERT INTO tech_debt(name) VALUES(?1)",
+        [String::from("dependencies")],
+    )?;
+
+    conn.execute(
+        "INSERT INTO task(description, tech_debt_id) VALUES(?1, ?2)",
+        params![String::from("I don't care"), 1],
+    )?;
+    let error = wmt::task::start_task(
+        &conn,
+        String::from("dependencies"),
+        String::from("Upgrading dependencies"),
+    );
+
+    match error {
+        Ok(_) => assert!(false, "Should return an error"),
+        Err(err) => assert_eq!(err, Error::AlreadyOpenedTask),
+    }
     Ok(())
 }
