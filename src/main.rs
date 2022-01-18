@@ -1,7 +1,6 @@
 extern crate wmt;
 use clap::{App, Arg, ArgMatches};
 use rusqlite::Connection;
-use wmt::errors::display_error;
 use wmt::errors::{Error, Result};
 
 fn open_db() -> Result<Connection> {
@@ -19,7 +18,7 @@ fn main() -> std::result::Result<(), wmt::errors::Error> {
 
     match matches.subcommand() {
         ("start", Some(sub_match)) => handle_start_task(sub_match),
-        ("stop", Some(sub_match)) => Ok(()),
+        ("stop", Some(_)) => handle_stop_task(),
         (&_, _) => Ok(()),
     }?;
     Ok(())
@@ -61,4 +60,11 @@ fn build_start_task_application<'a, 'b>() -> App<'a, 'b> {
 
 fn build_stop_task_application<'a, 'b>() -> App<'a, 'b> {
     App::new("stop").about("Stops the current task")
+}
+
+fn handle_stop_task() -> Result<()> {
+    open_db()
+        .and_then(|conn| wmt::task::finish_current_task(&conn))
+        .map(|t| println!("Stopped task '{}' running for n seconds", t.description))?;
+    Ok(())
 }
